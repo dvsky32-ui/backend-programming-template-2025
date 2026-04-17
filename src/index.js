@@ -1,24 +1,39 @@
-const { env, port } = require('./core/config');
-const logger = require('./core/logger')('app');
-const server = require('./core/server');
+const express = require('express');
 
-const app = server.listen(port, (err) => {
-  if (err) {
-    logger.fatal(err, 'Failed to start the server.');
-    process.exit(1);
-  } else {
-    logger.info(`Server runs at port ${port} in ${env} environment`);
-  }
+const app = express();
+
+const routes = require('./api/routes');
+const { Reward } = require('./models');
+
+app.use(express.json());
+
+// test
+app.get('/', (req, res) => {
+  res.send('API jalan');
 });
 
-process.on('uncaughtException', (err) => {
-  logger.fatal(err, 'Uncaught exception.');
+// seed reward
+const seedRewards = async () => {
+  const count = await Reward.countDocuments();
 
-  // Shutdown the server gracefully
-  app.close(() => process.exit(1));
+  if (count === 0) {
+    await Reward.insertMany([
+      { name: 'Emas 10 gram', quota: 1 },
+      { name: 'Smartphone X', quota: 5 },
+      { name: 'Smartwatch Y', quota: 10 },
+      { name: 'Voucher Rp100.000', quota: 100 },
+      { name: 'Pulsa Rp50.000', quota: 500 },
+    ]);
+    console.log('Seed reward berhasil');
+  }
+};
 
-  // If a graceful shutdown is not achieved after 1 second,
-  // shut down the process completely
-  setTimeout(() => process.abort(), 1000).unref();
-  process.exit(1);
+seedRewards();
+
+// 🔥 REGISTER ROUTES
+routes(app);
+
+// 🚀 START SERVER
+app.listen(5000, () => {
+  console.log('Server running on port 5000');
 });
